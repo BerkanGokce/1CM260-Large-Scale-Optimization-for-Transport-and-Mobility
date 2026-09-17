@@ -214,11 +214,8 @@ class TSP:
         # Continue until all cities have been added to the tour
         while notInTour:
 
-            # ----------------------------------------------------------
             # Step 1: Select the city whose minimum distance to a city
             # already in the tour is the largest
-            # ----------------------------------------------------------
-
             selectedCity = None
             largestMinDist = -1
 
@@ -239,11 +236,8 @@ class TSP:
                     largestMinDist = minDist
                     selectedCity = city
 
-            # ----------------------------------------------------------
             # Step 2: Find the insertion position that causes the
             # smallest increase in total tour length
-            # ----------------------------------------------------------
-
             bestPosition = None
             smallestIncrease = float("inf")
 
@@ -319,11 +313,8 @@ class TSP:
             notInTour = self.cities.copy()
             notInTour.remove(start)
 
-            # ----------------------------------------------------------
             # Initial step:
             # Find the city farthest from the starting city
-            # ----------------------------------------------------------
-
             farthestCity = None
             farthestDist = -1
 
@@ -338,17 +329,11 @@ class TSP:
             tour.append(farthestCity)
             notInTour.remove(farthestCity)
 
-            # ----------------------------------------------------------
             # Continue until all cities have been added
-            # ----------------------------------------------------------
-
             while notInTour:
 
-                # ------------------------------------------------------
                 # Step 1: Calculate the minimum distance to the current
                 # tour for every city not yet in the tour
-                # ------------------------------------------------------
-
                 candidateScores = {}
 
                 for city in notInTour:
@@ -363,10 +348,7 @@ class TSP:
 
                     candidateScores[city] = minDist
 
-                # ------------------------------------------------------
                 # Step 2: Construct the Restricted Candidate List (RCL)
-                # ------------------------------------------------------
-
                 bestScore = max(candidateScores.values())
 
                 threshold = (1 - alpha) * bestScore
@@ -380,11 +362,8 @@ class TSP:
                 # Randomly select one city from the RCL
                 selectedCity = int(np.random.choice(RCL))
 
-                # ------------------------------------------------------
                 # Step 3: Greedily find the insertion position that
                 # causes the smallest increase in tour length
-                # ------------------------------------------------------
-
                 bestPosition = None
                 smallestIncrease = float("inf")
 
@@ -407,10 +386,7 @@ class TSP:
                 tour.insert(bestPosition, selectedCity)
                 notInTour.remove(selectedCity)
 
-            # ----------------------------------------------------------
             # Evaluate this GRASP construction
-            # ----------------------------------------------------------
-
             cost = self.computeCosts(tour)
 
             # Keep it if it is the best solution found so far
