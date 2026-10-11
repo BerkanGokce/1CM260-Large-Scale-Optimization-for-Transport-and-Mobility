@@ -16,12 +16,8 @@ from alns import ALNS
 path_to_file = "instances/Ca1-2,3,15.txt"
 instance = TWO_E_CVRP(path_to_file)
 
-# Specify the number of destroy and repair operators.
-num_destroy_ops = 1
-num_repair_ops = 1
-
 # Build and execute the ALNS.
-algo = ALNS(instance, num_destroy_ops, num_repair_ops)
+algo = ALNS(instance)
 algo.execute()
 
 # Print the best solution.

@@ -1,0 +1,70 @@
+So it starts by randomly selecting a customer and a random satellite and creates a route
+
+At each iteration we randomly select a customer, if there are existing routes we inserted in that route if the capacity is suffice, but where in that route it should be inserted is calculated by greedy insertion method.
+
+Greedy Insertion: Method evaluates every possible insertion position and selects the one with minimum distance. After this updates the route so the costs and other things are updated.
+
+Then we randomly select another customer and continue.
+
+If the randomly selected customer doesn't fit into the route that we were currently working on The algorithm creates a new second route.
+
+In  next iterations in the case of there are several routes to place a randomly choosen customer, we randomly select a route and see if it fits in that route, if not try to put it on the next randomly choosen route. And using the greedy insertion method insert it into a place in that route.
+
+If no current routes fit that customer create a new route.
+
+After this lets say the S1 needs 45 and 50 demands.
+Now new treat the 1st echelon routing problem in a same way and do the same thing between the Satellites and the Depo.
+
+Selects a satellite randomly
+if no 1st echelon routes exist creates one, if there exists randomly select one route
+
+It again decides where to put that satellite on that route using the greedy insertion method
+
+In the 1st echelone the code allows to split the satellite demand to multiple routes
+
+If the randomly selected first-echelon route is already full, the code exits the loop over candidate routes rather than trying other existing routes.
+So even if another route has available capacity, it may create a new route unnecessarily.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

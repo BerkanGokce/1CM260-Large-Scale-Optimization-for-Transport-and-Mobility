@@ -114,8 +114,10 @@ class Route:
         First-echelon routes include distance, vehicle, and handling costs.
         Second-echelon routes include distance and vehicle costs.
         """
+
         if len(self.locations) < 3:
             # No customer/satellite served.
+            self.distance = 0
             return 0
 
         self.distance = self.compute_distance()
