@@ -1,0 +1,3 @@
+constructive_method,matched_runs,sa_wins,regular_wins,ties,mean_sa_minus_regular_pct
+random,24,6,17,1,0.29513550374948677
+savings,24,9,15,0,0.29740912755923293

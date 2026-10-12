@@ -12,10 +12,11 @@ Original template by Yasmine Beck.
 import random
 import copy
 import time
+import math
 
 # Local imports.
 from solution import Solution
-from constructive import RandomInsertion
+from constructive import RandomInsertion, ClarkeWrightSavings
 from destroy import Destroy
 from repair import Repair
 
@@ -71,14 +72,26 @@ class ALNS:
         self.min_size_nbh = 1
         self.max_size_nbh = 45
 
-        # Adaptive operator selection parameters.
-        self.lambda_decay = 0.8
+        self.constructive_method = "random"
 
-        # Scores assigned according to the outcome of an iteration.
-        self.omega_1 = 10  # New global best solution.
-        self.omega_2 = 5   # Better than the current solution.
-        self.omega_3 = 2   # Accepted but not improved.
-        self.omega_4 = 0   # Rejected solution.
+        # Optional simulated annealing (lecture: exp(-delta/T), T <- alpha*T).
+        self.use_sa = False
+        self.sa_initial_temperature = None  # Auto: 5% cost increase accepted with p=0.5
+        self.sa_cooling_rate = 0.99
+        self.sa_end_temperature = 1e-8
+        self.temperature = None
+        self.accepted = False
+        self.acceptance_probability = 0.0
+        self.acceptance_reason = ""
+
+        # Adaptive operator selection parameters
+        self.lambda_decay = 0.9
+
+        # Scores assigned according to the outcome of an iteration
+        self.omega_1 = 10  # New global best
+        self.omega_2 = 5   # Improved current solution
+        self.omega_3 = 2   # Accepted without improvement
+        self.omega_4 = 0   # Rejected
 
         # Register the available destroy operators.
         # Additional operators can be added without changing the ALNS loop.
@@ -118,6 +131,22 @@ class ALNS:
         # Construct an initial solution.
         self.construct_init_solution()
 
+        if self.use_sa:
+            if not 0 < self.sa_cooling_rate < 1:
+                raise ValueError("sa_cooling_rate must be between 0 and 1.")
+            if self.sa_initial_temperature is None:
+                self.temperature = max(
+                    1e-8, 0.05 * self.current_solution.cost / math.log(2)
+                )
+            else:
+                if self.sa_initial_temperature <= 0:
+                    raise ValueError("sa_initial_temperature must be positive.")
+                self.temperature = float(self.sa_initial_temperature)
+            if self.sa_end_temperature <= 0:
+                raise ValueError("sa_end_temperature must be positive.")
+        else:
+            self.temperature = None
+
         # Repeatedly destroy and repair the current solution.
         for iteration in range(self.num_iter):
             # Copy the current solution.
@@ -142,6 +171,10 @@ class ALNS:
 
             # Determine whether the new solution is accepted.
             self.check_if_accept()
+
+            # Cool after acceptance, as in the lecture notes.
+            if self.use_sa:
+                self.temperature *= self.sa_cooling_rate
 
             # Update the weights for choosing the destroy and repair operators.
             self.update_weights()
@@ -174,8 +207,14 @@ class ALNS:
         # Initialize the solution.
         self.current_solution = Solution(self.problem)
 
-        # Generate the first- and second-echelon routes using random insertion.
-        RandomInsertion(self.current_solution).construct(self.random_gen)
+        if self.constructive_method == "random":
+            RandomInsertion(self.current_solution).construct(self.random_gen)
+
+        elif self.constructive_method == "savings":
+            ClarkeWrightSavings(self.current_solution).construct(self.random_gen)
+
+        else:
+            raise ValueError(f"Unknown constructive method: {self.constructive_method}")
 
         # Validate the constructed solution.
         self.current_solution.validate_solution()
@@ -251,55 +290,53 @@ class ALNS:
         )
 
     def check_if_accept(self):
-        """
-        Check whether the newly found solution is accepted.
-        Assign a score based on the outcome of the iteration.
-        """
+        """Accept improvements, and optionally accept worse candidates via SA."""
+        candidate_cost = self.temp_solution.cost
+        current_cost = self.current_solution.cost
+        self.accepted = False
+        self.acceptance_probability = 0.0
+        self.acceptance_reason = "rejected"
 
-        # Accept if a global best solution is found.
-        if self.temp_solution.cost < self.best_cost:
-            # Update the solution and its cost.
-            self.best_cost = self.temp_solution.cost
+        if candidate_cost < self.best_cost:
+            self.best_cost = candidate_cost
             self.best_solution = copy.deepcopy(self.temp_solution)
             self.current_solution = copy.deepcopy(self.temp_solution)
-
-            # Assign the highest score for finding a new global best.
             self.score = self.omega_1
-
+            self.accepted = True
+            self.acceptance_probability = 1.0
+            self.acceptance_reason = "global_best"
             print("Found new global best solution.")
-
-        # Accept if a better solution than the current one is found.
-        elif self.temp_solution.cost < self.current_solution.cost:
+        elif candidate_cost < current_cost:
             self.current_solution = copy.deepcopy(self.temp_solution)
-
-            # Assign a score for improving the current solution.
             self.score = self.omega_2
-
+            self.accepted = True
+            self.acceptance_probability = 1.0
+            self.acceptance_reason = "improved_current"
+        elif self.use_sa and self.temperature > self.sa_end_temperature:
+            delta = candidate_cost - current_cost
+            self.acceptance_probability = math.exp(-delta / self.temperature)
+            if self.random_gen.random() < self.acceptance_probability:
+                self.current_solution = copy.deepcopy(self.temp_solution)
+                self.score = self.omega_3
+                self.accepted = True
+                self.acceptance_reason = "sa_accepted"
+            else:
+                self.score = self.omega_4
         else:
-            # Reject solutions that do not improve the current solution.
             self.score = self.omega_4
 
     def update_weights(self):
         """
-        Update the weights for the destroy and repair operators.
+        Update adaptive destroy and repair operator weights
+        using exponential smoothing.
         """
 
-        # Retrieve the decay parameter and the iteration score.
         lam = self.lambda_decay
         score = self.score
 
-        # Update the weight of the selected destroy operator.
-        old_destroy_weight = self.destroy_weights[self.selected_destroy]
+        # Update selected destroy operator
+        self.destroy_weights[self.selected_destroy] = lam * self.destroy_weights[self.selected_destroy] + (1 - lam) * score
 
-        self.destroy_weights[self.selected_destroy] = (
-            lam * old_destroy_weight
-            + (1 - lam) * score
-        )
-
-        # Update the weight of the selected repair operator.
-        old_repair_weight = self.repair_weights[self.selected_repair]
-
-        self.repair_weights[self.selected_repair] = (
-            lam * old_repair_weight
-            + (1 - lam) * score
-        )
+        # Update selected repair operator
+        self.repair_weights[self.selected_repair] = lam * self.repair_weights[self.selected_repair] + (1 - lam) * score
+        

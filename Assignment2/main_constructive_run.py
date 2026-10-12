@@ -24,7 +24,7 @@ from visualize import SolutionVisualizer
 # ============================================================
 BASE_DIR = Path(__file__).resolve().parent
 INSTANCES_DIR = BASE_DIR / "instances"
-RESULTS_DIR = BASE_DIR / "results"
+RESULTS_DIR = BASE_DIR / "constructive_results"
 DEFAULT_INSTANCE = "Ca1-2,3,15.txt"
 BASE_SEED = 42
 N_RUNS = 30
